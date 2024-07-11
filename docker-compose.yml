@@ -1,0 +1,48 @@
+version: '3'
+
+services:
+  server:
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    container_name: server
+    environment:
+      TZ: Asia/Tokyo
+      DB_USERNAME: root
+      DB_PASSWORD: password
+      DB_HOSTNAME: mysql
+      DB_PORT: 3306
+      DB_DBNAME: todolist
+    tty: true
+    volumes:
+      - ./:/app/ToDoList
+    ports:
+      - "8000:8000"
+    depends_on:
+      - mysql
+
+  mysql:
+    image: mysql:latest
+    container_name: mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: todolist
+    command: mysqld --character-set-server=utf8mb4 --collation-server=utf8mb4_general_ci
+    volumes:
+      - ./mysql/data:/var/lib/mysql
+    expose:
+      - "3306"
+
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    container_name: phpmyadmin
+    environment:
+      PMA_ARBITRARY: 1
+      PMA_HOST: mysql
+      PMA_USER: root
+      PMA_PASSWORD: password
+    ports:
+      - "4040:80"
+    volumes:
+      - ./phpmyadmin/sessions:/sessions
