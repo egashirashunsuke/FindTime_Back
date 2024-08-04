@@ -42,7 +42,8 @@ func SetRouter(e *echo.Echo) error {
 	//ユーザが入っているバンド一覧
 	api.GET("/bands", GetBandHandler)
 
-	//バンドを抜ける
+	//自分がバンドを抜ける
+	api.POST("/bands/:bandID/leave", LeaveBandMemberHandler)
 
 	// バンドメンバー追加POST /api/bands/{bandId}/members
 	api.POST("/bands/:bandID/members", AddBandMemberHandler)
