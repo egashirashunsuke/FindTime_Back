@@ -40,7 +40,7 @@ func GetDBConfig() string {
 	return dsn
 }
 
-// Task型のテーブルを作成する
+// テーブルを作成する
 func CreateTable(db *gorm.DB) {
 	db.AutoMigrate(&Task{}, &User{}, &Band{}, &Event{}, &UserBand{})
 }

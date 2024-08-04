@@ -50,3 +50,22 @@ func GetBandMembersHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, members)
 
 }
+
+func LeaveBandMemberHandler(c echo.Context) error {
+	uid := userIDFromToken(c)
+	if user := model.FindUser(&model.User{ID: uid}); user.ID == 0 {
+		return echo.ErrNotFound
+	}
+
+	bandID, err := strconv.Atoi(c.Param("bandID"))
+	if err != nil {
+		return echo.ErrNotFound
+	}
+
+	if err := model.DeleteBandMember(uid, bandID); err != nil {
+		return err
+	}
+
+	return c.NoContent(http.StatusOK)
+
+}

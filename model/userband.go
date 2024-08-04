@@ -24,3 +24,9 @@ func GetBandMembers(BandID int) ([]User, error) {
 	return members, nil
 
 }
+
+func DeleteBandMember(uid int, bandId int) error {
+	err := db.Where("user_bands.user_id = ? AND user_bands.band_id = ?", uid, bandId).
+		Delete(&UserBand{}).Error
+	return err
+}
