@@ -69,3 +69,41 @@ func LeaveBandMemberHandler(c echo.Context) error {
 	return c.NoContent(http.StatusOK)
 
 }
+
+func FavoriteBandHandler(c echo.Context) error {
+	uid := userIDFromToken(c)
+	if user := model.FindUser(&model.User{ID: uid}); user.ID == 0 {
+		return echo.ErrNotFound
+	}
+
+	bandID, err := strconv.Atoi(c.Param("bandID"))
+	if err != nil {
+		return echo.ErrNotFound
+	}
+
+	if err := model.FavoriteBand(uid, bandID); err != nil {
+		return err
+	}
+
+	return c.NoContent(http.StatusOK)
+
+}
+
+func RemoveFavoriteBandHandler(c echo.Context) error {
+	uid := userIDFromToken(c)
+	if user := model.FindUser(&model.User{ID: uid}); user.ID == 0 {
+		return echo.ErrNotFound
+	}
+
+	bandID, err := strconv.Atoi(c.Param("bandID"))
+	if err != nil {
+		return echo.ErrNotFound
+	}
+
+	if err := model.RemoveFavoriteBand(uid, bandID); err != nil {
+		return err
+	}
+
+	return c.NoContent(http.StatusOK)
+
+}

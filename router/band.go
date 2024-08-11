@@ -41,7 +41,7 @@ func GetBandHandler(c echo.Context) error {
 		return echo.ErrNotFound
 	}
 
-	bands, err := model.GetBandsByUserID(uid)
+	bands, err := model.GetUserBandWithFavorite(uid)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 	}

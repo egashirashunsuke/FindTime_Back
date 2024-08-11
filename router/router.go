@@ -54,6 +54,12 @@ func SetRouter(e *echo.Echo) error {
 	// バンドの空き時間取得POST /api/bands/{bandId}/availabilities
 	api.POST("/bands/:bandID/freetimes", GetBandMembersFreeTimeHandler)
 
+	//バンドをお気に入り登録
+	api.POST("/bands/:bandID/favorite", FavoriteBandHandler)
+
+	//バンドのお気に入り削除
+	api.DELETE("/bands/:bandID/favorite", RemoveFavoriteBandHandler)
+
 	// 8000番のポートを開く(*2)
 	err := e.Start(":8000")
 	return err
