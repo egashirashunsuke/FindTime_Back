@@ -1,9 +1,10 @@
 package model
 
 type UserBand struct {
-	ID     int `json:"id" gorm:"primaryKey;autoIncremant"`
-	UserID int
-	BandID int
+	ID         int `json:"id" gorm:"primaryKey;autoIncrement"`
+	UserID     int
+	BandID     int
+	IsFavorite bool `gorm:"default:false"`
 }
 
 func AddBandMember(member *UserBand) error {
@@ -28,5 +29,19 @@ func GetBandMembers(BandID int) ([]User, error) {
 func DeleteBandMember(uid int, bandId int) error {
 	err := db.Where("user_bands.user_id = ? AND user_bands.band_id = ?", uid, bandId).
 		Delete(&UserBand{}).Error
+	return err
+}
+
+func FavoriteBand(uid int, bandId int) error {
+	err := db.Model(&UserBand{}).
+		Where("user_bands.user_id = ? AND user_bands.band_id = ?", uid, bandId).
+		Update("is_favorite", true).Error
+	return err
+}
+
+func RemoveFavoriteBand(uid int, bandId int) error {
+	err := db.Model(&UserBand{}).
+		Where("user_bands.user_id = ? AND user_bands.band_id = ?", uid, bandId).
+		Update("is_favorite", false).Error
 	return err
 }

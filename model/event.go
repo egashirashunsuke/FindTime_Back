@@ -24,28 +24,6 @@ func GetEvents(event *Event) ([]Event, error) {
 	return events, err
 }
 
-// func AddEvent(starttime string, endtime string) (*Event, error) {
-// 	// 新たなuuidを生成し、これをid、成否をerrとする（*2）
-// 	id, err := uuid.NewUUID()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	// ID,Name,Finishedにid,name,false を代入したTask型のtaskを定義
-// 	event := Event{
-// 		UID:       id,
-// 		ID:        0,
-// 		StartTime: starttime,
-// 		EndTime:   endtime,
-// 	}
-
-// 	// taskをDBのTaskテーブルに追加。その成否を(ry
-// 	err = db.Create(&event).Error
-
-// 	// taskのポインタ と errを返す
-// 	return &event, err
-// }
-
 func AddEvent(event *Event) error {
 
 	if err := db.Create(event).Error; err != nil {

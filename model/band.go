@@ -28,3 +28,20 @@ func GetBandsByUserID(UserID int) ([]Band, error) {
 	}
 	return bands, nil
 }
+
+func GetUserBandWithFavorite(UserID int) ([]UserBandDTO, error) {
+	var dtos []UserBandDTO
+
+	err := db.Table("bands").
+		Select("bands.id as band_id, bands.name as band_name, user_bands.user_id as user_id, user_bands.is_favorite").
+		Joins("join user_bands on user_bands.band_id = bands.id").
+		Where("user_bands.user_id = ?", UserID).
+		Order("user_bands.is_favorite DESC").
+		Scan(&dtos).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return dtos, nil
+}
