@@ -2,6 +2,7 @@ package router
 
 import (
 	"FindTime-Server/model"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -15,26 +16,21 @@ func GetEventsHandler(c echo.Context) error {
 		return echo.ErrNotFound
 	}
 
-	// model(package)の関数GetTasksを実行し、戻り値をtasks,errと定義する。
 	events, err := model.GetEvents(&model.Event{UID: uid})
 
-	// errが空でない時は StatusBadRequest(*5) を返す
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Bad Request")
 	}
 
-	// StasusOK と tasksを返す
 	return c.JSON(http.StatusOK, events)
 }
 
-// ReqTask型は文字列のNameをパラメーターとして持つ
 type ReqEvent struct {
 	StartTime string `json:"start_time"`
 	EndTime   string `json:"end_time"`
 }
 
 func AddEventHandler(c echo.Context) error {
-
 	event := new(model.Event)
 
 	if err := c.Bind(event); err != nil {
@@ -52,7 +48,6 @@ func AddEventHandler(c echo.Context) error {
 		return err
 	}
 
-	// StastsOK と 追加されたtaskを返す
 	return c.JSON(http.StatusOK, event)
 }
 
@@ -77,11 +72,10 @@ func ChangeEventHandler(c echo.Context) error {
 
 	err = model.ChangeEvent(event)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Bad Reauest")
+		return echo.NewHTTPError(http.StatusBadRequest, "Bad Request")
 	}
 
 	return c.NoContent(http.StatusOK)
-
 }
 
 func DeleteEventHandler(c echo.Context) error {
@@ -100,11 +94,11 @@ func DeleteEventHandler(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusNoContent)
-
 }
 
 type AvailabilitiyRequest struct {
-	MemberIDs []int `json:"member_ids"`
+	MemberIDs   []int `json:"member_ids"`
+	MinDuration int   `json:"min_duration"`
 }
 
 type AvailabilitiyResponse struct {
@@ -113,8 +107,6 @@ type AvailabilitiyResponse struct {
 }
 
 func GetBandMembersFreeTimeHandler(c echo.Context) error {
-	// bandID := c.Param("bandID")
-
 	var req AvailabilitiyRequest
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, err)
@@ -128,8 +120,6 @@ func GetBandMembersFreeTimeHandler(c echo.Context) error {
 
 	memberEvents := make(map[int][]model.Event)
 	for _, memberID := range req.MemberIDs {
-		var events []model.Event
-
 		events, err := model.GetEvents(&model.Event{UID: memberID})
 		if err != nil {
 			return echo.NewHTTPError(http.StatusBadRequest, "Bad Request")
@@ -137,20 +127,18 @@ func GetBandMembersFreeTimeHandler(c echo.Context) error {
 		memberEvents[memberID] = events
 	}
 
-	calculateCommonAvailbbilities := calculateCommonAvailbbility(memberEvents, req.MemberIDs)
+	calculateCommonAvailabilities := calculateCommonAvailbbility(memberEvents, req.MemberIDs, req.MinDuration)
 
-	return c.JSON(http.StatusOK, calculateCommonAvailbbilities)
+	return c.JSON(http.StatusOK, calculateCommonAvailabilities)
 }
 
-// 共通時間を計算する関数
-func calculateCommonAvailbbility(memberEvents map[int][]model.Event, memberIDs []int) []AvailabilitiyResponse {
+func calculateCommonAvailbbility(memberEvents map[int][]model.Event, memberIDs []int, minDuration int) []AvailabilitiyResponse {
+	timeFormat := "2006-01-02 15:04:05"
 
 	parseEvents := make(map[int][]struct {
 		StartTime time.Time
 		EndTime   time.Time
 	})
-
-	timeFormat := "2006-01-02 15:04:05"
 
 	for memberID, events := range memberEvents {
 		for _, event := range events {
@@ -170,9 +158,21 @@ func calculateCommonAvailbbility(memberEvents map[int][]model.Event, memberIDs [
 	var commonTimeSlots []struct {
 		StartTime time.Time
 		EndTime   time.Time
+		Members   []int
 	}
+
 	if len(memberIDs) > 0 && len(parseEvents[memberIDs[0]]) > 0 {
-		commonTimeSlots = append(commonTimeSlots, parseEvents[memberIDs[0]]...)
+		for _, slot := range parseEvents[memberIDs[0]] {
+			commonTimeSlots = append(commonTimeSlots, struct {
+				StartTime time.Time
+				EndTime   time.Time
+				Members   []int
+			}{
+				StartTime: slot.StartTime,
+				EndTime:   slot.EndTime,
+				Members:   []int{memberIDs[0]},
+			})
+		}
 	} else {
 		return []AvailabilitiyResponse{}
 	}
@@ -181,6 +181,7 @@ func calculateCommonAvailbbility(memberEvents map[int][]model.Event, memberIDs [
 		var newCommonTimeSlots []struct {
 			StartTime time.Time
 			EndTime   time.Time
+			Members   []int
 		}
 		for _, commonSlot := range commonTimeSlots {
 			for _, memberSlot := range parseEvents[memberID] {
@@ -197,21 +198,32 @@ func calculateCommonAvailbbility(memberEvents map[int][]model.Event, memberIDs [
 					newCommonTimeSlots = append(newCommonTimeSlots, struct {
 						StartTime time.Time
 						EndTime   time.Time
+						Members   []int
 					}{
 						StartTime: start,
 						EndTime:   end,
+						Members:   append(commonSlot.Members, memberID),
 					})
 				}
 			}
 		}
 		commonTimeSlots = newCommonTimeSlots
 	}
-	var commonAvailabilities []AvailabilitiyResponse
+
+	var filteredCommonAvailabilities []AvailabilitiyResponse
+	minDurationDuration := float64(minDuration) // minDuration を float64 に変換して分単位に
+
 	for _, slot := range commonTimeSlots {
-		commonAvailabilities = append(commonAvailabilities, AvailabilitiyResponse{
-			StartTime: slot.StartTime.Format(timeFormat),
-			EndTime:   slot.EndTime.Format(timeFormat),
-		})
+		duration := slot.EndTime.Sub(slot.StartTime).Minutes()
+		log.Printf("Slot Start: %v, Slot End: %v, Duration: %v\n", slot.StartTime, slot.EndTime, duration)
+		if duration >= minDurationDuration {
+			log.Printf("Slot meets the criteria: Start %v, End %v\n", slot.StartTime, slot.EndTime)
+			filteredCommonAvailabilities = append(filteredCommonAvailabilities, AvailabilitiyResponse{
+				StartTime: slot.StartTime.Format(timeFormat),
+				EndTime:   slot.EndTime.Format(timeFormat),
+			})
+		}
 	}
-	return commonAvailabilities
+
+	return filteredCommonAvailabilities
 }
