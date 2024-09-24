@@ -22,6 +22,10 @@ func SetRouter(e *echo.Echo) error {
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS())
 
+	e.GET("/health", func(c echo.Context) error {
+		return c.String(200, "OK")
+	})
+
 	//新規登録用
 	e.POST("/signup", SignUpHandler)
 	//ログイン用
